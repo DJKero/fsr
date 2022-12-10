@@ -25,6 +25,8 @@ import {
 // Maximum number of historical sensor values to retain
 const MAX_SIZE = 1000;
 
+const numSensorsPerPanel = 4;
+
 // Returned `defaults` property will be undefined if the defaults are loading or reloading.
 // Call `reloadDefaults` to clear the defaults and reload from the server.
 function useDefaults() {
@@ -176,35 +178,41 @@ function useWsConnection({ defaults, onCloseWs }) {
 // An interactive display of the current values obtained by the backend.
 // Also has functionality to manipulate thresholds.
 function ValueMonitor(props) {
-  const { emit, index, webUIDataRef } = props;
+  const { emit, sensors, webUIDataRef } = props;
+  const firstSensor = sensors[0];
+  const sensorsRef = React.useRef(sensors);
   const thresholdLabelRef = React.useRef(null);
   const valueLabelRef = React.useRef(null);
   const canvasRef = React.useRef(null);
   const curValues = webUIDataRef.current.curValues;
   const curThresholds = webUIDataRef.current.curThresholds;
 
-  const EmitValue = useCallback((val) => {
+  const EmitValue = useCallback((val, index) => {
     // Send back all the thresholds instead of a single value per sensor. This is in case
     // the server restarts where it would be nicer to have all the values in sync.
     // Still send back the index since we want to update only one value at a time
     // to the microcontroller.
     emit(['update_threshold', curThresholds, index]);
-  }, [curThresholds, emit, index])
+  }, [curThresholds, emit])
 
   function Decrement(e) {
-    const val = curThresholds[index] - 1;
-    if (val >= 0) {
-      curThresholds[index] = val;
-      EmitValue(val);
-    }
+    sensors.forEach(index => {
+      const val = curThresholds[index] - 1;
+      if (val >= 0) {
+        curThresholds[index] = val;
+        EmitValue(val, index);
+      }
+    });
   }
 
   function Increment(e) {
-    const val = curThresholds[index] + 1;
-    if (val <= 1023) {
-      curThresholds[index] = val
-      EmitValue(val);
-    }
+    sensors.forEach(index => {
+      const val = curThresholds[index] + 1;
+      if (val <= 1023) {
+        curThresholds[index] = val
+        EmitValue(val, index);
+      }
+    });
   }
 
   useEffect(() => {
@@ -236,39 +244,51 @@ function ValueMonitor(props) {
     // Mouse Events
     canvas.addEventListener('mousedown', function(e) {
       let pos = getMousePos(canvas, e);
-      curThresholds[index] = Math.floor(1023 - pos.y/canvas.height * 1023);
+      sensors.forEach(index => {
+        curThresholds[index] = Math.floor(1023 - pos.y/canvas.height * 1023);
+      });
       is_drag = true;
     });
 
     canvas.addEventListener('mouseup', function(e) {
-      EmitValue(curThresholds[index]);
+      sensors.forEach(index => {
+        EmitValue(curThresholds[index], index);
+      });
       is_drag = false;
     });
 
     canvas.addEventListener('mousemove', function(e) {
       if (is_drag) {
         let pos = getMousePos(canvas, e);
-        curThresholds[index] = Math.floor(1023 - pos.y/canvas.height * 1023);
+        sensors.forEach(index => {
+          curThresholds[index] = Math.floor(1023 - pos.y/canvas.height * 1023);
+        });
       }
     });
 
     // Touch Events
     canvas.addEventListener('touchstart', function(e) {
       let pos = getTouchPos(canvas, e);
-      curThresholds[index] = Math.floor(1023 - pos.y/canvas.height * 1023);
+      sensors.forEach(index => {
+        curThresholds[index] = Math.floor(1023 - pos.y/canvas.height * 1023);
+      });
       is_drag = true;
     });
 
     canvas.addEventListener('touchend', function(e) {
       // We don't need to get the 
-      EmitValue(curThresholds[index]);
+      sensors.forEach(index => {
+        EmitValue(curThresholds[index], index);
+      });
       is_drag = false;
     });
 
     canvas.addEventListener('touchmove', function(e) {
       if (is_drag) {
         let pos = getTouchPos(canvas, e);
-        curThresholds[index] = Math.floor(1023 - pos.y/canvas.height * 1023);
+        sensors.forEach(index => {
+          curThresholds[index] = Math.floor(1023 - pos.y/canvas.height * 1023);
+        });
       }
     });
 
@@ -305,14 +325,20 @@ function ValueMonitor(props) {
       // the circular array.
       let currentValue = 0;
       if (curValues.length < MAX_SIZE) {
-        currentValue = curValues[curValues.length-1][index];
+        sensors.forEach(index => {
+          if (curValues[curValues.length-1][index] > currentValue)
+            currentValue = curValues[curValues.length-1][index];
+        });
       } else {
-        currentValue = curValues[((oldest - 1) % MAX_SIZE + MAX_SIZE) % MAX_SIZE][index];
+        sensors.forEach(index => {
+          if (curValues[curValues.length-1][index] > currentValue)
+            currentValue = curValues[((oldest - 1) % MAX_SIZE + MAX_SIZE) % MAX_SIZE][index];
+        });
       }
 
       // Add background fill.
       let grd = ctx.createLinearGradient(canvas.width/2, 0, canvas.width/2 ,canvas.height);
-      if (currentValue >= curThresholds[index]) {
+      if (currentValue >= curThresholds[firstSensor]) {
         grd.addColorStop(0, 'lightblue');
         grd.addColorStop(1, 'blue');
       } else {
@@ -336,20 +362,20 @@ function ValueMonitor(props) {
 
       // Threshold Line
       const threshold_height = 3
-      const threshold_pos = (1023-curThresholds[index])/1023 * canvas.height;
+      const threshold_pos = (1023-curThresholds[firstSensor])/1023 * canvas.height;
       ctx.fillStyle = "black";
       ctx.fillRect(0, threshold_pos-Math.floor(threshold_height/2), canvas.width, threshold_height);
 
       // Threshold Label
-      thresholdLabel.innerText = curThresholds[index];
+      thresholdLabel.innerText = curThresholds[firstSensor];
       ctx.font = "30px " + bodyFontFamily;
       ctx.fillStyle = "black";
-      if (curThresholds[index] > 990) {
+      if (curThresholds[firstSensor] > 990) {
         ctx.textBaseline = 'top';
       } else {
         ctx.textBaseline = 'bottom';
       }
-      ctx.fillText(curThresholds[index].toString(), 0, threshold_pos + threshold_height + 1);
+      ctx.fillText(curThresholds[firstSensor].toString(), 0, threshold_pos + threshold_height + 1);
 
       requestId = requestAnimationFrame(render);
     };
@@ -360,7 +386,7 @@ function ValueMonitor(props) {
       cancelAnimationFrame(requestId);
       window.removeEventListener('resize', setDimensions);
     };
-  }, [EmitValue, curThresholds, curValues, index, webUIDataRef]);
+  }, [EmitValue, curThresholds, curValues, sensors, firstSensor, webUIDataRef]);
 
   return(
     <Col className="ValueMonitor-col">
@@ -596,6 +622,7 @@ function Plot(props) {
 function FSRWebUI(props) {
   const { emit, defaults, webUIDataRef, wsCallbacksRef } = props;
   const numSensors = defaults.thresholds.length;
+  const numPanels = numSensors/numSensorsPerPanel;
   const [profiles, setProfiles] = useState(defaults.profiles);
   const [activeProfile, setActiveProfile] = useState(defaults.cur_profile);
   useEffect(() => {
@@ -636,6 +663,21 @@ function FSRWebUI(props) {
     // Strip out the "X " added by the button.
     const profile_name = e.target.innerText.replace('X ', '');
     emit(['change_profile', profile_name]);
+  }
+
+  function GroupSensors() {
+    let currentIndex= 0;
+    let panels = [];
+    let sensors = [];
+    for (let index = 0; index < numSensors/numSensorsPerPanel; index++) {
+      for (let panelIndex = 0; panelIndex < numSensorsPerPanel; panelIndex++) {
+        sensors.push(currentIndex);
+        currentIndex++;
+      }
+      panels.push(sensors);
+      sensors = [];
+    }
+    return panels;
   }
 
   return (
@@ -680,10 +722,12 @@ function FSRWebUI(props) {
         </Navbar>
         <Switch>
           <Route exact path="/">
-            <ValueMonitors numSensors={numSensors}>
-              {[...Array(numSensors).keys()].map(index => (
-                <ValueMonitor emit={emit} index={index} key={index} webUIDataRef={webUIDataRef} />)
-              )}
+            <ValueMonitors numSensors={numPanels}>
+              {
+                GroupSensors().map(sensors => (
+                <ValueMonitor emit={emit} sensors={sensors} key={sensors[0]} webUIDataRef={webUIDataRef} />)
+                )
+              }
             </ValueMonitors>
           </Route>
           <Route path="/plot">
