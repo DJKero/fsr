@@ -665,6 +665,10 @@ function FSRWebUI(props) {
     emit(['change_profile', profile_name]);
   }
 
+  function UpdateOffsets(e) {
+    emit(['update_offsets']);
+  }
+
   function GroupSensors() {
     let currentIndex= 0;
     let panels = [];
@@ -722,6 +726,9 @@ function FSRWebUI(props) {
         </Navbar>
         <Switch>
           <Route exact path="/">
+            <Row style={{ display: "flex", justifyContent: "center" }}>
+              <Button variant="light" size="sm" onClick={UpdateOffsets}>Update sensor offsets</Button>
+            </Row>
             <ValueMonitors numSensors={numPanels}>
               {
                 GroupSensors().map(sensors => (

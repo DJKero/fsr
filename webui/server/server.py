@@ -283,6 +283,14 @@ class SerialHandler(object):
 profile_handler = ProfileHandler()
 serial_handler = SerialHandler(profile_handler, port=SERIAL_PORT)
 
+def update_offsets():
+  try:
+    # Let the writer thread handle updating offsets.
+    update_offsets_cmd = 'o\n'
+    serial_handler.write_queue.put(update_offsets_cmd, block=False)
+  except queue.Full:
+    logger.error('Could not update offsets. Queue full.')
+
 def update_threshold(values, index):
   try:
     # Let the writer thread handle updating thresholds.
@@ -394,6 +402,8 @@ async def get_ws(request):
             elif action == 'change_profile':
               profile_name, = data[1:]
               change_profile(profile_name)
+            elif action == 'update_offsets':
+              update_offsets()
           elif msg.type == WSMsgType.CLOSE:
             connected = False
             continue
