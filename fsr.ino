@@ -466,8 +466,8 @@ class Sensor {
 //   Sensor(A4),
 // };
 
-CD74HC4067 mux1 = CD74HC4067(2,3,4,5);
-CD74HC4067 mux2 = CD74HC4067(6,7,8,9);
+CD74HC4067 mux1 = CD74HC4067(23,22,21,20);
+CD74HC4067 mux2 = CD74HC4067(37,36,35,34);
 
 SensorState panel_1;
 SensorState panel_3;
@@ -476,30 +476,30 @@ SensorState panel_7;
 SensorState panel_9;
 
 Sensor kSensors[] = {
-  Sensor(A10, &panel_1, &mux1, 1),
-  Sensor(A10, &panel_1, &mux1, 2),
-  Sensor(A10, &panel_1, &mux1, 3),
-  Sensor(A10, &panel_1, &mux1, 4),
+  Sensor(A5, &panel_1, &mux1, 1),
+  Sensor(A5, &panel_1, &mux1, 2),
+  Sensor(A5, &panel_1, &mux1, 3),
+  Sensor(A5, &panel_1, &mux1, 4),
   
-  Sensor(A10, &panel_3, &mux1, 8),
-  Sensor(A10, &panel_3, &mux1, 9),
-  Sensor(A10, &panel_3, &mux1, 10),
-  Sensor(A10, &panel_3, &mux1, 11),
+  Sensor(A5, &panel_3, &mux1, 8),
+  Sensor(A5, &panel_3, &mux1, 9),
+  Sensor(A5, &panel_3, &mux1, 10),
+  Sensor(A5, &panel_3, &mux1, 11),
 
-  Sensor(A10, &panel_5, &mux1, 12),
-  Sensor(A10, &panel_5, &mux1, 13),
-  Sensor(A10, &panel_5, &mux1, 14),
-  Sensor(A10, &panel_5, &mux1, 15),
+  Sensor(A5, &panel_5, &mux1, 12),
+  Sensor(A5, &panel_5, &mux1, 13),
+  Sensor(A5, &panel_5, &mux1, 14),
+  Sensor(A5, &panel_5, &mux1, 15),
   
-  Sensor(A11, &panel_7, &mux2, 1),
-  Sensor(A11, &panel_7, &mux2, 2),
-  Sensor(A11, &panel_7, &mux2, 3),
-  Sensor(A11, &panel_7, &mux2, 4),
+  Sensor(A0, &panel_7, &mux2, 1),
+  Sensor(A0, &panel_7, &mux2, 2),
+  Sensor(A0, &panel_7, &mux2, 3),
+  Sensor(A0, &panel_7, &mux2, 4),
   
-  Sensor(A11, &panel_9, &mux2, 8),
-  Sensor(A11, &panel_9, &mux2, 9),
-  Sensor(A11, &panel_9, &mux2, 10),
-  Sensor(A11, &panel_9, &mux2, 11)
+  Sensor(A0, &panel_9, &mux2, 8),
+  Sensor(A0, &panel_9, &mux2, 9),
+  Sensor(A0, &panel_9, &mux2, 10),
+  Sensor(A0, &panel_9, &mux2, 11)
 };
 
 const size_t kNumSensors = sizeof(kSensors)/sizeof(Sensor);
