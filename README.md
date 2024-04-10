@@ -1,6 +1,6 @@
 # Teejusb's FSR Guide
 A complete software package for FSR dance pads.  
-Join the ![Discord](https://img.shields.io/discord/778312862425939998?color=5865F2&label=Discord&logo=discord&logoColor=white) for any questions/suggestions
+Join the [![Discord](https://img.shields.io/discord/778312862425939998?color=5865F2&label=Discord&logo=discord&logoColor=white)](https://discord.com/invite/RamvtwuEF2) for any questions/suggestions
 
 ## Features
 - React web UI to customize sensitivity 
@@ -16,9 +16,9 @@ Join the ![Discord](https://img.shields.io/discord/778312862425939998?color=5865
 ## Requirements
 - A [Teensy](https://www.pjrc.com/store/index.html) or Arduino
   - uses native keyboard library for Arduino and Joystick library for Teensy
-- Python 3.7+
+- Python 3.8-3.12
     - virtualenv
-- Node 12+
+- Node 12-16 (needs updating for 17+)
   - yarn
 
 ## Hardware setup
@@ -31,7 +31,7 @@ Follow a guide like [fsr-pad-guide](https://github.com/Sereni/fsr-pad-guide) or 
 1. In Arduino IDE, set the `Tools` > `Board` to your microcontroller (e.g. `Teensy 4.0`)
 1. In Arduino IDE, set the `Tools` > `Port` to select the serial port for the plugged in microcontroller (e.g. `COM5` or `/dev/something`)
 1. Load [fsr.ino](./fsr.ino) in Arduino IDE.
-1. By default, [A0-A3 are the pins](https://forum.pjrc.com/teensy40_pinout1.png) used for the FSR sensors in this software. If you aren't using these pins [alter the SensorState array](./fsr.ino#L437-L442)
+1. By default, [A0-A3 are the pins](https://forum.pjrc.com/teensy40_pinout1.png) used for the FSR sensors in this software. If you aren't using these pins [alter the SensorState array](./fsr.ino#L509-L531)
 1. Push the code to the board
 
 ### Testing and using the serial monitor
@@ -73,3 +73,28 @@ cd C:\Users\YourUser\path\to\fsr\webui
 yarn start-api
 ```
 Now you can just click on that file to open the UI and start the server.
+
+
+## Joystick Support on Arduino Leonardo and Pro Micro
+
+The FSR firmware will configure Teensy devices as USB joysticks, and other Arduino devices as USB keyboards. Some Arduino boards such as the Arduino Leonardo and Sparkfun's Pro Micro can be configured as Joysticks using an additional third-party library.
+
+Install ArduinoJoystickLibrary, by following the installation instructions in that project's readme. https://github.com/MHeironimus/ArduinoJoystickLibrary#installation-instructions
+
+> 1. Download https://github.com/MHeironimus/ArduinoJoystickLibrary/archive/master.zip
+> 2. In the Arduino IDE, select Sketch > Include Library > Add .ZIP Library.... Browse to where the downloaded ZIP file is located and click Open.
+
+Find this line, and remove the slashes at the beginning to uncomment it.
+```c++
+// #define USE_ARDUINO_JOYSTICK_LIBRARY
+```
+
+```c++
+#define USE_ARDUINO_JOYSTICK_LIBRARY
+```
+
+## Support for RP2040
+
+The RP2040 is the microcontroller used by the Raspberry Pi Pico. The Pi Pico only exposes 3 analog input pins, but the RP2040 actually has 4. Various other RP2040 development boards do make it easy to access all 4 analog pins, which is more suitable for building a 4-panel dance pad.
+
+To run the FSR firmware on an RP2040-based device, install "Raspberry Pi Pico/RP2040" 3.6.1 or newer in the Arduino IDE boards manager. Make sure the "USB Stack" option in the Tools menu is set to "Pico SDK."

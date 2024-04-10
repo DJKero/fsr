@@ -11,8 +11,13 @@
   #define SET_BIT(sfr, bit) (_SFR_BYTE(sfr) |= _BV(bit))
 #endif
 
+// To enable joystick support on Atmega32u4 boards such as a Leonardo or Pro Micro,
+// install Arduino Joystick Library from
+// https://github.com/MHeironimus/ArduinoJoystickLibrary/tree/master#installation-instructions
+// then uncomment the following line.
+// #define USE_ARDUINO_JOYSTICK_LIBRARY
 
-#ifdef CORE_TEENSY
+#if defined(CORE_TEENSY)
   // Use the Joystick library for Teensy
   void ButtonStart() {
     // Use Joystick.begin() for everything that's not Teensy 2.0.
@@ -27,6 +32,64 @@
   void ButtonRelease(uint8_t button_num) {
     Joystick.button(button_num, 0);
   }
+  bool ButtonSend() {
+    Joystick.send_now();
+    return true;
+  }
+#elif defined(ARDUINO_ARCH_RP2040)
+  // Use the Joystick library for Arduino-Pico
+  // Teensy includes Joystick by default but Arduino-Pico requires
+  // it to be included explicitly. The API is similar but it
+  // is a different implementation with its own quirks.
+  // Make sure to select Pico SDK for the Arduino-Pico USB stack.
+  #include <Joystick.h>
+  // Include tusb.h to get tud_hid_ready()
+  #include "tusb.h"
+  // Arduino-Pico defaults to 10ms polling interval (100Hz) but it can be
+  // set to a shorter interval by declaring a usb_hid_poll_interval global.
+  // Set the interval to 1 for 1000Hz polling. Requires Arduino-Pico 3.6.1
+  // or newer to work. Older versions will always request a 10ms interval.
+  int usb_hid_poll_interval = 1;
+  void ButtonStart() {
+    Joystick.begin();
+    Joystick.useManualSend(true);
+  }
+  void ButtonPress(uint8_t button_num) {
+    Joystick.button(button_num, 1);
+  }
+  void ButtonRelease(uint8_t button_num) {
+    Joystick.button(button_num, 0);
+  }
+  bool ButtonSend() {
+    // Wait until send_now can send with minimal delay.
+    // If it isn't ready, Joystick.send_now() will block.
+    // Problems are most pronounced at slower polling rates since
+    // send_now() could block for a full polling interval.
+    if (!tud_hid_ready()) {
+      return false;
+    } else {
+      Joystick.send_now();
+      return true;
+    }
+  }
+#elif defined(USE_ARDUINO_JOYSTICK_LIBRARY)
+  #include <Joystick.h>
+  // Create the Joystick
+  Joystick_ Joystick;
+  void ButtonStart() {
+    // Passing false disables autosend.
+    Joystick.begin(false);
+  }
+  void ButtonPress(uint8_t button_num) {
+    Joystick.pressButton(button_num);
+  }
+  void ButtonRelease(uint8_t button_num) {
+    Joystick.releaseButton(button_num);
+  }
+  bool ButtonSend() {
+    Joystick.sendState();
+    return true;
+  }
 #else
   #include <Keyboard.h>
   // And the Keyboard library for Arduino
@@ -38,6 +101,10 @@
   }
   void ButtonRelease(uint8_t button_num) {
     Keyboard.release('a' + button_num - 1);
+  }
+  bool ButtonSend() {
+    // Keyboard doesn't use manual send, but report success anyway.
+    return true;
   }
 #endif
 
@@ -635,10 +702,10 @@ void loop() {
   }
 
   if (willSend) {
-    lastSend = startMicros;
-    #ifdef CORE_TEENSY
-        Joystick.send_now();
-    #endif
+    bool sent = ButtonSend();
+    if (sent) {
+      lastSend = startMicros;
+    }
   }
 
   if (loopTime == -1) {
