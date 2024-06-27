@@ -441,6 +441,8 @@ async def on_startup(app):
 
   write_thread = threading.Thread(target=serial_handler.Write)
   write_thread.start()
+  time.sleep(1)
+  update_offsets()
 
 async def on_shutdown(app):
   for ws in app['websockets']:
